@@ -15,7 +15,7 @@ app = FastAPI()
 
 origins = [
     "http://localhost",
-    "http://localhost:8000",
+    "http://localhost:3000",
 ]
 
 app.add_middleware(
@@ -58,9 +58,9 @@ class RegisterResponse(BaseModel):
     message: str
 
 # --- 서버 B (텍스트 처리용) ---
-SERVER_B_URL = "http://localhost:9000/process"
+SERVER_B_URL = "http://localhost:5000/process"
 
-# --- 서버 B (오디오 판단 서버) ---
+# --- 서버 C (오디오 판단 서버) ---
 JUDGE_BASE_URL     = "http://127.0.0.1:9000"
 JUDGE_START        = f"{JUDGE_BASE_URL}/start"
 JUDGE_INGEST_CHUNK = f"{JUDGE_BASE_URL}/ingest-chunk"

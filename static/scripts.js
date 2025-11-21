@@ -402,9 +402,24 @@ document.addEventListener("DOMContentLoaded", () => {
       // data.status: "Silent" | "Speech" | "Finished" | "Error"
       if (data.status === "Finished" && data.text) {
         // 최종 인식 결과를 나의 메시지로 표시
-        addChatMessage(data.text, "me");
+        result = data.text
+
+        addChatMessage(result, "me");
         showChatLog();
         stopRecordingAudio("finished");
+
+        // 인식 결과를 텍스트와 동일하게 뒷단으로 보내주기
+        const res = await fetch(`${API_BASE_URL}/api/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          room_id: "default",
+          text: result,
+          client_type: "web",
+        }),
+      });
       }
     } catch (err) {
       console.error("청크 업로드 중 오류", err);
