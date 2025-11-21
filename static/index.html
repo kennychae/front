@@ -10,7 +10,7 @@
   <!-- 가운데에 놓을 '폰 화면' 래퍼 -->
   <div id="phone">
 
-    <!-- 🔹 ① 로그인 화면 (폰 안으로 이동 + screen-page 클래스 추가) -->
+    <!-- ① 로그인 화면 (폰 안으로 이동 + screen-page 클래스 추가) -->
     <div id="loginScreen" class="screen-page">
       <h1>로그인</h1>
       <form id="loginForm">
@@ -24,6 +24,40 @@
         </div>
         <button type="submit" id="loginSubmitBtn">로그인</button>
         <p id="loginError" class="loginError hidden"></p>
+        <!-- 회원가입 창으로 이동 -->
+        <p style="margin-top: 14px; text-align:center;">
+          <button type="button" id="goRegisterBtn" style="background:none; border:none; color:#3a7bfd; cursor:pointer;">
+            회원가입
+          </button>
+        </p>
+      </form>
+    </div>
+
+    <!-- 🔹 회원가입 화면 -->
+    <div id="registerScreen" class="hidden">
+      <h1>회원가입</h1>
+      <form id="registerForm">
+
+        <div class="loginRow">
+          <label>아이디</label>
+          <input id="regId" type="text" required />
+        </div>
+
+        <div class="loginRow">
+          <label>비밀번호</label>
+          <input id="regPw" type="password" required />
+        </div>
+
+        <button type="submit" id="loginSubmitBtn">가입하기</button>
+
+        <p id="registerError" class="loginError hidden"></p>
+
+        <!-- 로그인 화면으로 돌아가기 -->
+        <p style="margin-top:14px; text-align:center;">
+          <button type="button" id="backToLoginBtn" style="background:none; border:none; color:#3a7bfd; cursor:pointer;">
+            로그인으로 돌아가기
+          </button>
+        </p>
       </form>
     </div>
 

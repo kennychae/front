@@ -657,3 +657,17 @@ body{
   font-size: 13px;
   color: #d93025;
 }
+
+#registerScreen {
+  width: 100%;
+  max-width: 420px;
+  min-height: 100svh;
+  margin: 0 auto;
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 24px 20px;
+}

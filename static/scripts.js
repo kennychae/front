@@ -8,6 +8,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const loginIdInput  = document.getElementById("loginId");
   const loginPwInput  = document.getElementById("loginPw");
   const loginErrorEl  = document.getElementById("loginError");
+  const registerScreen = document.getElementById("registerScreen");
+  const goRegisterBtn = document.getElementById("goRegisterBtn");
+  const backToLoginBtn = document.getElementById("backToLoginBtn");
+
+  const registerForm = document.getElementById("registerForm");
+  const regIdInput = document.getElementById("regId");
+  const regPwInput = document.getElementById("regPw");
+  const registerErrorEl = document.getElementById("registerError");
 
   // ===== 홈 / 채팅 화면 관련 DOM =====
   const homeScreen   = document.getElementById("homeScreen");
@@ -39,6 +47,20 @@ document.addEventListener("DOMContentLoaded", () => {
     if (chatScreen)   chatScreen.classList.remove("hidden");
 
     if (userInput) userInput.focus();
+  }
+
+  function showRegister() {
+    loginScreen.classList.add("hidden");
+    registerScreen.classList.remove("hidden");
+    homeScreen.classList.add("hidden");
+    chatScreen.classList.add("hidden");
+  }
+
+  function backToLogin() {
+    loginScreen.classList.remove("hidden");
+    registerScreen.classList.add("hidden");
+    homeScreen.classList.add("hidden");
+    chatScreen.classList.add("hidden");
   }
 
   // 처음엔 로그인 화면을 보여줌
@@ -106,6 +128,51 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
+
+  if (registerForm) {
+    registerForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const id = regIdInput.value.trim();
+      const pwd = regPwInput.value.trim();
+
+      if (!id || !pwd) return;
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/register`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ id, pwd }),
+        });
+
+        const data = await res.json();
+
+        if (!data.success) {
+          registerErrorEl.textContent = data.message;
+          registerErrorEl.classList.remove("hidden");
+          return;
+        }
+
+        // 회원가입 성공
+        alert("회원가입 완료! 로그인해주세요.");
+        registerErrorEl.classList.add("hidden");
+
+        // 로그인 화면으로 전환
+        backToLogin();
+
+      } catch (err) {
+        registerErrorEl.textContent = "네트워크 오류가 발생했습니다.";
+        registerErrorEl.classList.remove("hidden");
+        console.error(err);
+      }
+    });
+  }
+
+
+  goRegisterBtn.addEventListener("click", showRegister);
+  backToLoginBtn.addEventListener("click", backToLogin);
 
   // ===== 사이드바 관련 =====
   const settingsBtn     = document.getElementById("settingsBtn");

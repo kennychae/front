@@ -9,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 import requests
 import httpx
+import json
 
 app = FastAPI()
 
@@ -48,6 +49,14 @@ class Message(BaseModel):
     client_type: str
     created_at: datetime
 
+class RegisterRequest(BaseModel):
+    id: str
+    pwd: str
+
+class RegisterResponse(BaseModel):
+    success: bool
+    message: str
+
 # --- 서버 B (텍스트 처리용) ---
 SERVER_B_URL = "http://localhost:9000/process"
 
@@ -55,6 +64,8 @@ SERVER_B_URL = "http://localhost:9000/process"
 JUDGE_BASE_URL     = "http://127.0.0.1:9000"
 JUDGE_START        = f"{JUDGE_BASE_URL}/start"
 JUDGE_INGEST_CHUNK = f"{JUDGE_BASE_URL}/ingest-chunk"
+
+USERDATA_PATH = Path("static/userdata.json")
 
 # 정적 파일 제공
 BASE_DIR = Path(__file__).parent
@@ -118,13 +129,66 @@ class LoginResponse(BaseModel):
     username: Optional[str] = None
     message: str
 
+def load_users():
+    if not USERDATA_PATH.exists():
+        return []
+    with open(USERDATA_PATH, "r", encoding="utf-8") as f:
+        try:
+            return json.load(f)
+        except:
+            return []
+
+
+def save_users(data):
+    with open(USERDATA_PATH, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+def generate_uuid_from_id(user_id: str) -> int:
+    # 문자열 → 안정적인 정수 해시처럼 변환
+    return abs(hash(user_id)) % (10**10)  # 10자리 정수
+
 @app.post("/api/login", response_model=LoginResponse)
 def login(payload: LoginRequest):
-    # 테스트 계정만 허용
-    if payload.username == "test" and payload.password == "1234":
-        return LoginResponse(success=True, username=payload.username, message="로그인 성공")
-    else:
-        return LoginResponse(success=False, username=None, message="아이디 또는 비밀번호가 올바르지 않습니다.")
+    users = load_users()
+
+    for u in users:
+        if u["id"] == payload.username and u["pwd"] == payload.password:
+            return LoginResponse(
+                success=True,
+                username=u["id"],
+                message="로그인 성공"
+            )
+
+    return LoginResponse(success=False, message="아이디 또는 비밀번호가 올바르지 않습니다.")
+
+@app.post("/api/register", response_model=RegisterResponse)
+def register_user(payload: RegisterRequest):
+    user_id = payload.id.strip()
+    password = payload.pwd.strip()
+
+    if not user_id or not password:
+        return RegisterResponse(success=False, message="ID와 비밀번호를 입력해주세요.")
+
+    users = load_users()
+
+    # ID 중복 체크
+    for u in users:
+        if u["id"] == user_id:
+            return RegisterResponse(success=False, message="이미 존재하는 ID입니다.")
+
+    # uuid 생성
+    new_uuid = generate_uuid_from_id(user_id)
+
+    new_user = {
+        "id": user_id,
+        "pwd": password,
+        "uuid": new_uuid
+    }
+
+    users.append(new_user)
+    save_users(users)
+
+    return RegisterResponse(success=True, message="회원가입 완료!")
 
 
 # ==============================
