@@ -69,7 +69,15 @@ USERDATA_PATH = Path("static/userdata.json")
 
 # 정적 파일 제공
 BASE_DIR = Path(__file__).parent
+WAV_DIR = BASE_DIR / "wavfiles"
+WAV_DIR.mkdir(exist_ok=True)
+
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+app.mount("/wavfiles", StaticFiles(directory=str(WAV_DIR)), name="wavfiles")
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    return FileResponse("static/favicon.ico")
 
 # 루트 → index.html
 @app.get("/", response_class=FileResponse)
@@ -131,12 +139,12 @@ class LoginResponse(BaseModel):
 
 def load_users():
     if not USERDATA_PATH.exists():
-        return []
+        return {}
     with open(USERDATA_PATH, "r", encoding="utf-8") as f:
         try:
             return json.load(f)
         except:
-            return []
+            return {}
 
 
 def save_users(data):
@@ -151,15 +159,30 @@ def generate_uuid_from_id(user_id: str) -> int:
 def login(payload: LoginRequest):
     users = load_users()
 
-    for u in users:
-        if u["id"] == payload.username and u["pwd"] == payload.password:
-            return LoginResponse(
-                success=True,
-                username=u["id"],
-                message="로그인 성공"
-            )
+    username = payload.username
+    password = payload.password
 
-    return LoginResponse(success=False, message="아이디 또는 비밀번호가 올바르지 않습니다.")
+    # 유저가 아예 없을 때
+    if username not in users:
+        return LoginResponse(success=False, message="존재하지 않는 아이디입니다.")
+
+    user = users[username]
+
+    # 비밀번호 검증
+    if user["pwd"] != password:
+        return LoginResponse(success=False, message="비밀번호가 올바르지 않습니다.")
+
+    return LoginResponse(
+        success=True,
+        username=username,
+        message="로그인 성공"
+    )
+
+@app.get("/api/get_uuid")
+def get_uuid(username: str):
+    users = load_users()
+
+    return users[username]["uuid"]
 
 @app.post("/api/register", response_model=RegisterResponse)
 def register_user(payload: RegisterRequest):
@@ -171,21 +194,18 @@ def register_user(payload: RegisterRequest):
 
     users = load_users()
 
-    # ID 중복 체크
-    for u in users:
-        if u["id"] == user_id:
-            return RegisterResponse(success=False, message="이미 존재하는 ID입니다.")
+    # 이미 있는지 확인
+    if user_id in users:
+        return RegisterResponse(success=False, message="이미 존재하는 ID입니다.")
 
-    # uuid 생성
-    new_uuid = generate_uuid_from_id(user_id)
-
-    new_user = {
+    # 새 유저 저장
+    users[user_id] = {
         "id": user_id,
         "pwd": password,
-        "uuid": new_uuid
+        "uuid": abs(hash(user_id)) % (10**10),
+        "device": None
     }
 
-    users.append(new_user)
     save_users(users)
 
     return RegisterResponse(success=True, message="회원가입 완료!")

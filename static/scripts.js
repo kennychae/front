@@ -23,6 +23,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const startChatBtn = document.getElementById("startChatBtn");
   const subiconBtn   = document.getElementById("subiconBtn");
 
+  // 유저 uuid 저장용
+  let currentUserUUID = null;
+
   // 로그인 성공 후 메시지 로딩에 쓸 함수(아래에서 할당)
   let loadMessages = null;
 
@@ -103,8 +106,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         const data = await res.json();
+
+        // uuid 조회
+
         if (data.success) {
           if (loginErrorEl) loginErrorEl.classList.add("hidden");
+          // uuid 저장
+          currentUserUUID = await (await fetch(`/api/get_uuid?username=${data.username}`)).json();
 
           // 로그인 성공 → 홈 화면
           showHome();
@@ -242,6 +250,61 @@ document.addEventListener("DOMContentLoaded", () => {
     chatMsgs.appendChild(row);
     chatLog.scrollTop = chatLog.scrollHeight;
   }
+  // ------------------------------
+  // 오디오 추가 함수
+  // ------------------------------
+  function addAudioMessage(src, who = "other") {
+    const row = document.createElement("div");
+    row.className = `chatRow ${who}`;
+
+    const bubble = document.createElement("div");
+    bubble.className = "chatBubble audioBubble";
+
+    // 오디오 엘리먼트 (controls 제거)
+    const audio = document.createElement("audio");
+    audio.src = src;
+
+    // 재생 상태 아이콘
+    const icon = document.createElement("span");
+    icon.className = "audioIcon";
+    icon.textContent = "■"; // 재생 중 표시
+
+    bubble.appendChild(icon);
+    bubble.appendChild(audio);
+    row.appendChild(bubble);
+    chatMsgs.appendChild(row);
+
+    chatLog.scrollTop = chatLog.scrollHeight;
+
+    // 자동 재생 시도
+    audio.play().catch((err) => {
+      console.warn("자동재생 실패:", err);
+      icon.textContent = "▶"; // 자동재생 안되면 ▶로
+    });
+
+    // 재생 시작 → ■
+    audio.addEventListener("play", () => {
+      icon.textContent = "■";
+    });
+
+    // 재생 종료 → ▶
+    audio.addEventListener("ended", () => {
+      icon.textContent = "▶";
+    });
+
+    // 클릭 시 재생/일시정지 토글
+    bubble.addEventListener("click", () => {
+      if (audio.paused) {
+        audio.play();
+      } else {
+        audio.pause();
+        icon.textContent = "▶"; // 일시정지 시 ▶
+      }
+    });
+  }
+
+
+
 
   // ------------------------------
   // 과거 메시지 불러오기 (로그인 후 사용)
@@ -310,9 +373,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const saved = await res.json();
 
+      reply_audio_path = `/wavfiles/${currentUserUUID}/test.wav`;
+
       // 3) 서버 B에서 처리한 답장만 나중에 표시
       if (saved.reply_text) {
         addChatMessage(saved.reply_text, "other");
+        addAudioMessage(reply_audio_path, "other");
       }
     } catch (err) {
       console.error("메시지 전송 중 오류", err);

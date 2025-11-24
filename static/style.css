@@ -671,3 +671,36 @@ body{
   justify-content: center;
   padding: 24px 20px;
 }
+
+/* 기본 오디오 UI 숨기기 */
+audio.audioPlayer {
+  display: none;
+}
+
+/* 말풍선 스타일 */
+.audioBubble {
+  background: #fff;
+  border-radius: 12px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 240px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+
+/* 재생 버튼 */
+.audioPlayBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: #3DA5EB;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.audioPlayBtn:active {
+  transform: scale(0.95);
+}
