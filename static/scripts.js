@@ -25,6 +25,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 유저 uuid 저장용
   let currentUserUUID = null;
+  let currentUserId = null;
 
   // 로그인 성공 후 메시지 로딩에 쓸 함수(아래에서 할당)
   let loadMessages = null;
@@ -112,6 +113,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (data.success) {
           if (loginErrorEl) loginErrorEl.classList.add("hidden");
           // uuid 저장
+          currentUserId = data.username;
           currentUserUUID = await (await fetch(`/api/get_uuid?username=${data.username}`)).json();
 
           // 로그인 성공 → 홈 화면
@@ -303,31 +305,33 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-
-
-
   // ------------------------------
   // 과거 메시지 불러오기 (로그인 후 사용)
   // ------------------------------
   loadMessages = async function () {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/messages?room_id=default`);
+      const res = await fetch(`${API_BASE_URL}/api/conversation/${currentUserId}`);
       if (!res.ok) {
-        console.error("메시지 목록 불러오기 실패", res.status);
+        console.error("대화 목록 불러오기 실패", res.status);
         return;
       }
-      const list = await res.json();
+      const data = await res.json();
 
       chatMsgs.innerHTML = "";
-      for (const msg of list) {
-        // 지금은 전부 "me"로 표시 (원하면 client_type으로 구분)
-        addChatMessage(msg.text, "me");
+      for (const item of data.conversation) {
+        // 사용자 입력 시
+        if (item.type === "input") {
+          addChatMessage(item.text, "me")
+        // 응답
+        } else if (item.type === "output") {
+          addChatMessage(item.text, "other")
+        }
       }
-      if (list.length > 0) {
+      if (data.conversation.length > 0) {
         showChatLog();
       }
     } catch (err) {
-      console.error("메시지 목록 로딩 중 오류", err);
+      console.error("대화목록 로딩 중 오류", err);
     }
   };
 
@@ -353,15 +357,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       // 2) 서버에 전송
+      const roomId = currentUserId || "test";
       const res = await fetch(`${API_BASE_URL}/api/messages`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          room_id: "default",
+          room_id: roomId,
           text: text,
           client_type: "web",
+          user_id: currentUserId || "test"
         }),
       });
 
@@ -475,17 +481,33 @@ document.addEventListener("DOMContentLoaded", () => {
         stopRecordingAudio("finished");
 
         // 인식 결과를 텍스트와 동일하게 뒷단으로 보내주기
-        const res = await fetch(`${API_BASE_URL}/api/messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          room_id: "default",
-          text: result,
-          client_type: "web",
-        }),
-      });
+        const roomId = currentUserId || "test";
+        const msg = await fetch(`${API_BASE_URL}/api/messages`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            room_id: roomId,
+            text: result,
+            client_type: "web",
+            user_id: currentUserId || "test"
+          }),
+        });
+
+        if (!msg.ok) {
+          console.error("메시지 전송 실패", msg.status);
+          return;
+        }
+        const saved = await msg.json();
+
+        reply_audio_path = `/wavfiles/${currentUserUUID}/test.wav`;
+
+        // 3) 서버 B에서 처리한 답장만 나중에 표시
+        if (saved.reply_text) {
+          addChatMessage(saved.reply_text, "other");
+          addAudioMessage(reply_audio_path, "other");
+        }
       }
     } catch (err) {
       console.error("청크 업로드 중 오류", err);
