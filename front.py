@@ -35,7 +35,7 @@ class MessageCreate(BaseModel):
     text: str
     client_type: str = "web"
     user_id: Optional[str] = "test"  # 로그인한 사용자 ID
-
+    mode: Optional[str] = None # 모드
 
 class MessageResponse(BaseModel):
     id: int
@@ -109,6 +109,7 @@ async def create_message(payload: MessageCreate):
         "text": payload.text,
         "client_type": payload.client_type,
         "created_at": datetime.utcnow(),
+        "mode": payload.mode
     }
     MESSAGES.append(msg)
 

@@ -30,6 +30,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // 로그인 성공 후 메시지 로딩에 쓸 함수(아래에서 할당)
   let loadMessages = null;
 
+  // 모델 선택
+  let currentChatMode = "0";
+
   // ===== 화면 전환 함수 =====
   function showLogin() {
     if (loginScreen)  loginScreen.classList.remove("hidden");
@@ -190,6 +193,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const sidebarOverlay  = document.getElementById("sidebarOverlay");
   const sidebarCloseBtn = document.getElementById("sidebarCloseBtn");
 
+  document.querySelectorAll("input[name='chatMode']").forEach((el) => {
+    el.addEventListener("change", () => {
+      currentChatMode = el.value;
+    });
+  });
+
   if (settingsBtn && sidebar && sidebarOverlay && sidebarCloseBtn) {
     function openSidebar() {
       sidebar.classList.add("open");
@@ -346,8 +355,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  async function sendMessage() {
-    const text = userInput.value.trim();
+  async function sendMessage(result = null) {
+    const text = result ?? userInput.value.trim();
     if (!text) return;
 
     // 1) 먼저 내 메시지를 바로 UI에 표시
@@ -368,6 +377,7 @@ document.addEventListener("DOMContentLoaded", () => {
           text: text,
           client_type: "web",
           user_id: currentUserId || "test"
+          mode: currentChatMode
         }),
       });
 
@@ -378,8 +388,9 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const saved = await res.json();
+      console.log("saved:", saved);
 
-      reply_audio_path = `/wavfiles/${currentUserUUID}/test.wav`;
+      reply_audio_path = `/wav_files/${currentUserUUID}/received_audio.wav`;
 
       // 3) 서버 B에서 처리한 답장만 나중에 표시
       if (saved.reply_text) {
@@ -474,40 +485,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // data.status: "Silent" | "Speech" | "Finished" | "Error"
       if (data.status === "Finished" && data.text) {
         // 최종 인식 결과를 나의 메시지로 표시
-        result = data.text
-
-        addChatMessage(result, "me");
-        showChatLog();
-        stopRecordingAudio("finished");
-
-        // 인식 결과를 텍스트와 동일하게 뒷단으로 보내주기
-        const roomId = currentUserId || "test";
-        const msg = await fetch(`${API_BASE_URL}/api/messages`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            room_id: roomId,
-            text: result,
-            client_type: "web",
-            user_id: currentUserId || "test"
-          }),
-        });
-
-        if (!msg.ok) {
-          console.error("메시지 전송 실패", msg.status);
-          return;
-        }
-        const saved = await msg.json();
-
-        reply_audio_path = `/wavfiles/${currentUserUUID}/test.wav`;
-
-        // 3) 서버 B에서 처리한 답장만 나중에 표시
-        if (saved.reply_text) {
-          addChatMessage(saved.reply_text, "other");
-          addAudioMessage(reply_audio_path, "other");
-        }
+        await sendMessage(data.text);
       }
     } catch (err) {
       console.error("청크 업로드 중 오류", err);
