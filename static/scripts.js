@@ -287,6 +287,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     chatLog.scrollTop = chatLog.scrollHeight;
 
+    const gifPath = "/static/talk.gif";
+    const originalImg = "/static/maicon.png";
+    const img = document.getElementById("mainImage");
+
     // 자동 재생 시도
     audio.play().catch((err) => {
       console.warn("자동재생 실패:", err);
@@ -295,19 +299,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // 재생 시작 → ■
     audio.addEventListener("play", () => {
+      if (img) img.src = gifPath;
       icon.textContent = "■";
     });
 
     // 재생 종료 → ▶
     audio.addEventListener("ended", () => {
+      if (img) img.src = originalImg;
       icon.textContent = "▶";
     });
 
     // 클릭 시 재생/일시정지 토글
     bubble.addEventListener("click", () => {
       if (audio.paused) {
+        if (img) img.src = gifPath;
         audio.play();
       } else {
+        if (img) img.src = originalImg;
         audio.pause();
         icon.textContent = "▶"; // 일시정지 시 ▶
       }
@@ -376,7 +384,7 @@ document.addEventListener("DOMContentLoaded", () => {
           room_id: roomId,
           text: text,
           client_type: "web",
-          user_id: currentUserId || "test"
+          user_id: currentUserId || "test",
           mode: currentChatMode
         }),
       });

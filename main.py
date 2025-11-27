@@ -33,6 +33,7 @@ class MessageCreate(BaseModel):
     room_id: str = "default"
     text: str
     client_type: str = "web"
+    user_id: str = "test"
 
 class MessageResponse(BaseModel):
     id: int
@@ -69,11 +70,11 @@ USERDATA_PATH = Path("static/userdata.json")
 
 # 정적 파일 제공
 BASE_DIR = Path(__file__).parent
-WAV_DIR = BASE_DIR / "wavfiles"
+WAV_DIR = BASE_DIR / "wav_files"
 WAV_DIR.mkdir(exist_ok=True)
 
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
-app.mount("/wavfiles", StaticFiles(directory=str(WAV_DIR)), name="wavfiles")
+app.mount("/wav_files", StaticFiles(directory=str(WAV_DIR)), name="wav_files")
 
 @app.get("/favicon.ico", include_in_schema=False)
 def favicon():
@@ -156,7 +157,7 @@ def generate_uuid_from_id(user_id: str) -> int:
     return abs(hash(user_id)) % (10**10)  # 10자리 정수
 
 @app.post("/api/login", response_model=LoginResponse)
-def login(payload: LoginRequest):
+async def login(payload: LoginRequest):
     users = load_users()
 
     username = payload.username
@@ -171,6 +172,14 @@ def login(payload: LoginRequest):
     # 비밀번호 검증
     if user["pwd"] != password:
         return LoginResponse(success=False, message="비밀번호가 올바르지 않습니다.")
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.post(
+            "http://localhost:5000/api/logindb",
+            data= {
+                "username" : username,
+                "password" : password,
+            }
+        )
 
     return LoginResponse(
         success=True,
